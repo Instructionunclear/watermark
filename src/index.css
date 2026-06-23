@@ -183,27 +183,21 @@ body {
 
 @media (max-width: 1024px) {
   .app-shell {
-    grid-template-rows: 56px 45vh 1fr;
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "header"
-      "preview"
-      "panel";
-    /* Queue gets hidden or appended to panel via React later, for now we let panel overflow */
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
     overflow-y: auto;
+    overflow-x: hidden;
   }
-  body { overflow: auto; }
+  .app-header { flex-shrink: 0; }
+  .preview-area { height: 45vh; min-height: 350px; flex-shrink: 0; padding: 16px; }
+  .queue-area { flex-shrink: 0; border-top: 1px solid var(--border) !important; border-bottom: 1px solid var(--border) !important; }
+  .side-panel { flex-shrink: 0; border-left: none; box-shadow: none; overflow: visible; height: auto; display: block; }
 }
 
 @media (max-width: 768px) {
-  .app-shell {
-    grid-template-rows: 48px 40vh 1fr;
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "header"
-      "preview"
-      "panel";
-  }
+  .preview-area { height: 40vh; min-height: 280px; padding: 12px; }
+  .app-header { padding: 0 16px; height: 56px; }
 }
 
 /* ============================================================

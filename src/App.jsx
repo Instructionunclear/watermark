@@ -331,7 +331,7 @@ export default function App() {
           )}
           {videos.length > 0 && (
             <>
-              {doneCount > 0 && (
+              {doneCount > 0 && !isProcessingAll && (
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={handleDownloadZIP}
