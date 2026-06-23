@@ -166,7 +166,7 @@ export default function App() {
     }
   }, [savePreset, addToast])
 
-  const processOne = useCallback(async (idx) => {
+  const processOne = useCallback(async (idx, autoDownload = true) => {
     if (!ffmpegLoaded) { addToast('FFmpeg is still loading...', 'error'); return }
     const file = videos[idx]
     if (!file) return
@@ -186,10 +186,13 @@ export default function App() {
       setProgress(p => ({ ...p, [idx]: 100 }))
       setProcessingStage('')
       addToast(`✅ ${file.name} done!`, 'success')
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `watermarked_${file.name.replace(/\.[^.]+$/, '')}.mp4`
-      a.click()
+      if (autoDownload) {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `watermarked_${file.name.replace(/\.[^.]+$/, '')}.mp4`
+        a.click()
+      }
+      return url
     } catch (err) {
       console.error(err)
       let msg
@@ -210,9 +213,43 @@ export default function App() {
     if (!ffmpegLoaded) { addToast('FFmpeg is still loading...', 'error'); return }
     if (videos.length === 0) { addToast('Add some videos first!', 'info'); return }
     setIsProcessingAll(true)
-    for (let i = 0; i < videos.length; i++) await processOne(i)
+    
+    const zip = new JSZip()
+    const folder = zip.folder('Watermarked Videos')
+    let added = 0
+    
+    for (let i = 0; i < videos.length; i++) {
+      const url = await processOne(i, false) // Disable auto-download for individual files
+      if (url) {
+        try {
+          const res = await fetch(url)
+          const blob = await res.blob()
+          const name = `watermarked_${videos[i].name.replace(/\.[^.]+$/, '')}.mp4`
+          folder.file(name, blob)
+          added++
+        } catch (err) {
+          console.error('Failed to fetch blob for zip', err)
+        }
+      }
+    }
+    
     setIsProcessingAll(false)
     addToast(`🎉 All ${videos.length} videos done!`, 'success')
+    
+    if (added > 0) {
+      addToast('Generating ZIP file...', 'info')
+      try {
+        const zipBlob = await zip.generateAsync({ type: 'blob' })
+        const url = URL.createObjectURL(zipBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'Watermarked_Videos.zip'
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+      } catch {
+        addToast('Failed to create ZIP', 'error')
+      }
+    }
   }, [ffmpegLoaded, videos, processOne, addToast])
 
   const handleDownloadZIP = useCallback(async () => {
