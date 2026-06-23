@@ -61,11 +61,11 @@ export default function VideoPreview({ videoFile, watermark, onWatermarkMove, wm
       if (!canvas.width || !canvas.height) { animRef.current = requestAnimationFrame(tick); return }
 
       if (!videoReady.current) {
-        // Dark placeholder background
-        ctx.fillStyle = '#0d0f18'
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light'
+        ctx.fillStyle = isLight ? '#f1f5f9' : '#0d0f18'
         ctx.fillRect(0, 0, canvas.width, canvas.height)
         // Subtle grid
-        ctx.strokeStyle = 'rgba(255,255,255,0.04)'
+        ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'
         ctx.lineWidth = 1
         for (let x = 0; x < canvas.width; x += 40) {
           ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke()
@@ -74,7 +74,7 @@ export default function VideoPreview({ videoFile, watermark, onWatermarkMove, wm
           ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke()
         }
         // Helper label
-        ctx.fillStyle = 'rgba(255,255,255,0.1)'
+        ctx.fillStyle = isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.1)'
         ctx.font = '13px Inter, sans-serif'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'

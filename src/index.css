@@ -60,6 +60,50 @@
   --transition-slow: 0.4s var(--ease-out);
 }
 
+[data-theme="light"] {
+  /* Backgrounds */
+  --bg-base:     #f8fafc;
+  --bg-surface:  rgba(255, 255, 255, 0.7);
+  --bg-elevated: rgba(255, 255, 255, 0.95);
+  --bg-hover:    rgba(241, 245, 249, 0.85);
+  --bg-input:    rgba(241, 245, 249, 0.8);
+  
+  --gradient-surface: linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(248,250,252,0.95) 100%);
+
+  /* Borders */
+  --border:        rgba(0, 0, 0, 0.08);
+  --border-bright: rgba(0, 0, 0, 0.16);
+  --border-active: rgba(139, 92, 246, 0.6);
+
+  /* Accent — violet to blue */
+  --accent:       hsl(262, 83%, 58%);
+  --accent-glow:  hsla(262, 83%, 58%, 0.25);
+  --accent-light: hsl(262, 80%, 70%);
+  --accent-dark:  hsl(262, 83%, 45%);
+  --accent-bg:    hsla(262, 83%, 58%, 0.08);
+  --gradient-accent: linear-gradient(135deg, hsl(262,83%,58%) 0%, hsl(220,83%,55%) 100%);
+
+  /* Status */
+  --success: hsl(160, 76%, 35%);
+  --success-bg: hsla(160, 76%, 35%, 0.1);
+  --warning: hsl(38, 93%, 45%);
+  --warning-bg: hsla(38, 93%, 45%, 0.1);
+  --danger:  hsl(350, 84%, 50%);
+  --danger-bg:  hsla(350, 84%, 50%, 0.1);
+
+  /* Text */
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #64748b;
+
+  /* Shadows */
+  --shadow-sm:     0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-md:     0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-lg:     0 20px 60px rgba(0, 0, 0, 0.12);
+  --shadow-accent: 0 0 24px var(--accent-glow);
+  --shadow-inset:  inset 0 1px 1px rgba(0,0,0,0.05);
+}
+
 /* --- Reset & Base --- */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -85,6 +129,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="light"] body {
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse 80% 50% at 20% -10%, hsla(262, 83%, 58%, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 110%, hsla(220, 83%, 50%, 0.04), transparent);
 }
 
 /* Accessibility: Focus visible */
@@ -97,12 +149,21 @@ body {
 /* --- Scrollbar --- */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.15) transparent;
+  scrollbar-color: var(--border-bright) transparent;
 }
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--border-bright);
+  border-radius: 99px;
+  border: 2px solid var(--bg-base);
+}
 
 /* ============================================================
    APP SHELL / LAYOUT (Responsive Grid)

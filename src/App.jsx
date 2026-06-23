@@ -41,6 +41,13 @@ function useToasts() {
 }
 
 export default function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('wm_theme') || 'dark')
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('wm_theme', theme)
+  }, [theme])
+
   const [watermark, setWatermark] = useState(DEFAULT_WATERMARK)
   const [wmImage, setWmImage] = useState(null)
   const [videos, setVideos] = useState([])
@@ -268,6 +275,16 @@ export default function App() {
           Watermark Studio
         </div>
         <div className="header-actions">
+          {videos.length === 0 && (
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+              title="Toggle Light/Dark Mode"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+          )}
           {doneCount > 0 && (
             <span className="badge badge-success">✅ {doneCount}/{videos.length} exported</span>
           )}
@@ -286,6 +303,14 @@ export default function App() {
                   📦 Download ZIP
                 </button>
               )}
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+                title="Toggle Light/Dark Mode"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
               <button
                 id="process-single-btn"
                 className="btn btn-secondary btn-sm"
