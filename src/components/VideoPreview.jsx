@@ -45,10 +45,14 @@ export default function VideoPreview({ videoFile, watermark, onWatermarkMove, wm
     }
   }, [])
 
-  // Call syncSize whenever the aspect ratio setting changes
+  // Keep canvas resolution perfectly synced to wrapper DOM size
   useEffect(() => {
-    syncSize()
-  }, [watermark.outputRatio, syncSize])
+    const wrapper = areaRef.current?.querySelector('.preview-canvas-wrapper')
+    if (!wrapper) return
+    const ro = new ResizeObserver(() => syncSize())
+    ro.observe(wrapper)
+    return () => ro.disconnect()
+  }, [syncSize])
 
   // Main draw loop — runs every rAF, reads watermark via ref (zero re-render lag)
   useEffect(() => {
