@@ -47,15 +47,59 @@ export function drawWatermark(ctx, canvas, wm, wmImage) {
     ctx.textAlign    = 'center'
     ctx.textBaseline = 'middle'
 
-    // Crisp text: reset shadow defaults
+    // Letter spacing
+    if (wm.letterSpacing !== undefined && 'letterSpacing' in ctx) {
+      ctx.letterSpacing = `${wm.letterSpacing}px`
+    } else if ('letterSpacing' in ctx) {
+      ctx.letterSpacing = '0px'
+    }
+
+    const text = wm.text || 'Watermark'
+    const metrics = ctx.measureText(text)
+
+    // Background Box
+    if (wm.bgBox) {
+      const padX = size * 0.6
+      const padY = size * 0.4
+      const boxW = metrics.width + padX * 2
+      // Estimate height robustly
+      const ascent = metrics.actualBoundingBoxAscent || (size * 0.8)
+      const descent = metrics.actualBoundingBoxDescent || (size * 0.2)
+      const boxH = ascent + descent + padY * 2
+      
+      ctx.fillStyle = wm.bgColor || 'rgba(0,0,0,0.6)'
+      const radius = size * 0.15
+      const x = -boxW / 2
+      const y = -(ascent + padY)
+      
+      ctx.beginPath()
+      if (ctx.roundRect) {
+        ctx.roundRect(x, y, boxW, boxH, radius)
+      } else {
+        ctx.rect(x, y, boxW, boxH)
+      }
+      ctx.fill()
+    }
+
+    // Shadow / Glow
     ctx.shadowColor   = 'transparent'
     ctx.shadowBlur    = 0
     ctx.shadowOffsetX = 0
     ctx.shadowOffsetY = 0
 
-    const text = wm.text || 'Watermark'
+    if (wm.glow) {
+      ctx.shadowColor = wm.glowColor || wm.color || '#ffffff'
+      ctx.shadowBlur  = size * 0.5
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+    } else if (wm.shadow && size >= 14) {
+      ctx.shadowColor   = 'rgba(0,0,0,0.75)'
+      ctx.shadowBlur    = Math.max(2, size * 0.15)
+      ctx.shadowOffsetX = Math.round(size * 0.05)
+      ctx.shadowOffsetY = Math.round(size * 0.05)
+    }
 
-    // Outline — draw first so it sits behind the fill
+    // Outline
     if (wm.outline) {
       ctx.strokeStyle = 'rgba(0,0,0,0.85)'
       ctx.lineWidth   = Math.max(1.5, size * 0.07)
@@ -63,21 +107,24 @@ export function drawWatermark(ctx, canvas, wm, wmImage) {
       ctx.strokeText(text, 0, 0)
     }
 
-    // Shadow — applied only to fill.
-    // We disable shadow for small text (<14px) because the blur radius
-    // makes it look muddy/illegible on standard displays.
-    if (wm.shadow && size >= 14) {
-      ctx.shadowColor   = 'rgba(0,0,0,0.75)'
-      ctx.shadowBlur    = Math.max(2, size * 0.15)
-      ctx.shadowOffsetX = Math.round(size * 0.05)
-      ctx.shadowOffsetY = Math.round(size * 0.05)
-    }
-
+    // Main Text Fill
     ctx.fillStyle = wm.color || '#ffffff'
     ctx.fillText(text, 0, 0)
 
-    // Draw a thin crisp outline instead of shadow for small text (<14px)
-    if (wm.shadow && size < 14) {
+    // Underline
+    if (wm.underline) {
+      const descent = metrics.actualBoundingBoxDescent || (size * 0.2)
+      const lineY = descent + Math.max(2, size * 0.1)
+      ctx.beginPath()
+      ctx.moveTo(-metrics.width / 2, lineY)
+      ctx.lineTo(metrics.width / 2, lineY)
+      ctx.strokeStyle = wm.color || '#ffffff'
+      ctx.lineWidth = Math.max(1, size * 0.06)
+      ctx.stroke()
+    }
+
+    // Fallback crisp shadow for tiny text
+    if (wm.shadow && size < 14 && !wm.glow) {
       ctx.shadowColor = 'transparent'
       ctx.shadowBlur  = 0
       ctx.strokeStyle = 'rgba(0,0,0,0.6)'
@@ -115,12 +162,25 @@ export function getWatermarkBounds(ctx, canvas, wm, wmImage) {
 
     ctx.save()
     ctx.font = fontStr
+    if (wm.letterSpacing !== undefined && 'letterSpacing' in ctx) {
+      ctx.letterSpacing = `${wm.letterSpacing}px`
+    } else if ('letterSpacing' in ctx) {
+      ctx.letterSpacing = '0px'
+    }
+
     const text = wm.text || 'Watermark'
     const metrics = ctx.measureText(text)
-    w = metrics.width
-    // Use actual bounding box ascender/descender sum instead of just 'size'
-    // This makes bounding box precise across all fonts.
-    h = (metrics.actualBoundingBoxAscent || size) + (metrics.actualBoundingBoxDescent || 0)
+    
+    if (wm.bgBox) {
+      const padX = size * 0.6
+      const padY = size * 0.4
+      w = metrics.width + padX * 2
+      h = (metrics.actualBoundingBoxAscent || (size*0.8)) + (metrics.actualBoundingBoxDescent || (size*0.2)) + padY * 2
+    } else {
+      w = metrics.width
+      h = (metrics.actualBoundingBoxAscent || (size*0.8)) + (metrics.actualBoundingBoxDescent || (size*0.2))
+    }
+    
     if (h === 0) h = size // fallback
     ctx.restore()
   } else if (wm.type === 'image' && wmImage) {

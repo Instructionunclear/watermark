@@ -104,13 +104,35 @@ export default function WatermarkPanel({ watermark, onChange, onWmImageLoad }) {
             </div>
             <div className="form-row">
               <label className="form-label">Style</label>
-              <div className="font-toggles">
+              <div className="font-toggles" style={{ flexWrap: 'wrap' }}>
                 <button id="wm-bold-btn" aria-label="Bold" className={`font-toggle-btn ${watermark.bold ? 'active' : ''}`} onClick={() => set('bold', !watermark.bold)} title="Bold">B</button>
                 <button id="wm-italic-btn" aria-label="Italic" className={`font-toggle-btn ${watermark.italic ? 'active' : ''}`} onClick={() => set('italic', !watermark.italic)} title="Italic" style={{ fontStyle: 'italic' }}>I</button>
-                <button id="wm-shadow-btn" aria-label="Shadow" className={`font-toggle-btn ${watermark.shadow ? 'active' : ''}`} onClick={() => set('shadow', !watermark.shadow)} title="Shadow">💧</button>
-                <button id="wm-outline-btn" aria-label="Outline" className={`font-toggle-btn ${watermark.outline ? 'active' : ''}`} onClick={() => set('outline', !watermark.outline)} title="Outline">Ⓐ</button>
+                <button id="wm-underline-btn" aria-label="Underline" className={`font-toggle-btn ${watermark.underline ? 'active' : ''}`} onClick={() => set('underline', !watermark.underline)} title="Underline" style={{ textDecoration: 'underline' }}>U</button>
+                <button id="wm-shadow-btn" aria-label="Shadow" className={`font-toggle-btn ${watermark.shadow ? 'active' : ''}`} onClick={() => set('shadow', !watermark.shadow)} title="Drop Shadow">💧</button>
+                <button id="wm-glow-btn" aria-label="Glow" className={`font-toggle-btn ${watermark.glow ? 'active' : ''}`} onClick={() => set('glow', !watermark.glow)} title="Neon Glow">🌟</button>
+                <button id="wm-outline-btn" aria-label="Outline" className={`font-toggle-btn ${watermark.outline ? 'active' : ''}`} onClick={() => set('outline', !watermark.outline)} title="Stroke Outline">Ⓐ</button>
+                <button id="wm-bgbox-btn" aria-label="Background Box" className={`font-toggle-btn ${watermark.bgBox ? 'active' : ''}`} onClick={() => set('bgBox', !watermark.bgBox)} title="Background Box">🔲</button>
               </div>
             </div>
+
+            <div className="form-row">
+              <label htmlFor="wm-letterspacing-slider" className="form-label">Letter Spacing <span className="form-label-value">{watermark.letterSpacing ?? 0}px</span></label>
+              <input id="wm-letterspacing-slider" type="range" min="-10" max="100" step="1" className="form-range"
+                value={watermark.letterSpacing ?? 0} onChange={e => set('letterSpacing', Number(e.target.value))} />
+            </div>
+
+            {watermark.bgBox && (
+              <div className="form-row">
+                <label className="form-label">Box Background</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="color" className="form-color"
+                    value={(watermark.bgColor || 'rgba(0,0,0,0.6)').slice(0, 7)} 
+                    onChange={e => set('bgColor', e.target.value)} 
+                  />
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Solid color only for now</span>
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <>
