@@ -176,7 +176,14 @@ export default function VideoPreview({ videoFile, watermark, onWatermarkMove, wm
 
   return (
     <div className="preview-area" ref={areaRef}>
-      <div className="preview-canvas-wrapper" style={{ aspectRatio: targetRatioStr }}>
+      <div 
+        className="preview-canvas-wrapper" 
+        style={{ 
+          aspectRatio: videoFile && targetRatioStr !== 'auto' ? targetRatioStr : '16 / 9',
+          width: videoFile ? 'auto' : '100%',
+          height: videoFile ? 'auto' : 'auto'
+        }}
+      >
         {/* Video — hidden until a file is loaded */}
         <video
           ref={videoRef}
