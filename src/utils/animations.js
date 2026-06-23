@@ -15,8 +15,10 @@ export function applyAnimation(baseConfig, timeSec, bounds) {
   const anim = baseConfig.animation || 'none'
   if (anim === 'none') return baseConfig
 
-  // Speed factor: animSpeed 1-10 mapped to a multiplier
-  const speed = (baseConfig.animSpeed ?? 5) / 5
+  // Speed factor: animSpeed 1-10 mapped to an exponential multiplier
+  // This gives massive variation: 5 = 1x speed, 10 = 10x speed, 1 = ~0.16x speed
+  const rawSpeed = baseConfig.animSpeed ?? 5
+  const speed = Math.pow(10, (rawSpeed - 5) / 5)
   let newConfig = { ...baseConfig }
 
   if (anim === 'slide') {
