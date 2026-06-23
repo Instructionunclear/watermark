@@ -197,7 +197,7 @@ export function useFFmpeg() {
           await ffmpeg.deleteFile(`wm_${String(i).padStart(5, '0')}.png`).catch(()=>{})
         }
       }
-    } catch {}
+    } catch { /* ignore cleanup errors */ }
 
     onProgress(100)
     return URL.createObjectURL(mp4Blob)

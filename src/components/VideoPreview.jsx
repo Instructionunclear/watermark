@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import { drawWatermark, getWatermarkBounds } from '../utils/canvasRenderer'
 import { applyAnimation } from '../utils/animations'
 
@@ -9,7 +9,7 @@ export default function VideoPreview({ videoFile, watermark, onWatermarkMove, wm
   const animRef    = useRef(null)
   const dragging   = useRef(false)
   const dragOff    = useRef({ dx: 0, dy: 0 })
-  const startTime  = useRef(performance.now())
+  const startTime  = useRef(0)
   const wmRef      = useRef(watermark)
   const videoReady = useRef(false)
 
@@ -21,21 +21,15 @@ export default function VideoPreview({ videoFile, watermark, onWatermarkMove, wm
     wmRef.current = watermark
   }, [watermark])
 
-  // Calculate target aspect ratio based on user setting
-  const getTargetRatio = useCallback(() => {
-    const r = wmRef.current.outputRatio
-    if (r === '1:1') return 1
-    if (r === '4:5') return 4 / 5
-    if (r === '16:9') return 16 / 9
-    if (r === '9:16') return 9 / 16
-    
-    // original or fallback
-    const video = videoRef.current
-    if (video && videoReady.current && video.videoHeight) {
-      return video.videoWidth / video.videoHeight
-    }
-    return 16 / 9
-  }, [])
+  // Target aspect ratio for the wrapper
+  const targetRatioStr = (() => {
+    const r = watermark.outputRatio
+    if (r === '1:1') return '1 / 1'
+    if (r === '4:5') return '4 / 5'
+    if (r === '16:9') return '16 / 9'
+    if (r === '9:16') return '9 / 16'
+    return 'auto'
+  })()
 
   // Resize canvas to match the wrapper element
   const syncSize = useCallback(() => {
@@ -96,6 +90,7 @@ export default function VideoPreview({ videoFile, watermark, onWatermarkMove, wm
 
       // Apply stateless animation (if any)
       const bounds = getWatermarkBounds(ctx, canvas, wmConfig, wmImage)
+      if (startTime.current === 0) startTime.current = performance.now()
       const elapsedSec = (performance.now() - startTime.current) / 1000
       const cfg = applyAnimation(wmConfig, elapsedSec, bounds)
 
@@ -178,11 +173,9 @@ export default function VideoPreview({ videoFile, watermark, onWatermarkMove, wm
     }
   }, [onMove, onUp])
 
-  const targetRatioNum = getTargetRatio()
-
   return (
     <div className="preview-area" ref={areaRef}>
-      <div className="preview-canvas-wrapper" style={{ aspectRatio: targetRatioNum }}>
+      <div className="preview-canvas-wrapper" style={{ aspectRatio: targetRatioStr }}>
         {/* Video — hidden until a file is loaded */}
         <video
           ref={videoRef}

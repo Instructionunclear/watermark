@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function PresetManager({ presets, watermark, onLoad, onSave, onDelete, activePreset, onSetActive }) {
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [saveName, setSaveName] = useState('')
+  const [presetToDelete, setPresetToDelete] = useState(null)
 
   const handleSave = () => {
     const trimmed = saveName.trim()
@@ -16,6 +17,19 @@ export default function PresetManager({ presets, watermark, onLoad, onSave, onDe
     onLoad(preset.config)
     onSetActive(preset.name)
   }
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowSaveModal(false)
+        setPresetToDelete(null)
+      }
+    }
+    if (showSaveModal || presetToDelete) {
+      window.addEventListener('keydown', onKey)
+    }
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showSaveModal, presetToDelete])
 
   return (
     <div className="panel-section">
@@ -52,9 +66,9 @@ export default function PresetManager({ presets, watermark, onLoad, onSave, onDe
                 <button
                   className="btn btn-danger btn-sm btn-icon"
                   style={{ padding: '3px 5px', flexShrink: 0, fontSize: 11 }}
-                  onClick={e => { e.stopPropagation(); onDelete(p.name) }}
+                  onClick={e => { e.stopPropagation(); setPresetToDelete(p.name) }}
                   title="Delete preset"
-                  id={`delete-preset-${p.name.replace(/\s/g, '-')}`}
+                  aria-label="Delete preset"
                 >
                   ✕
                 </button>
@@ -70,7 +84,7 @@ export default function PresetManager({ presets, watermark, onLoad, onSave, onDe
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-title">💾 Save Preset</div>
             <div className="form-row">
-              <label className="form-label">Preset Name</label>
+              <label htmlFor="preset-name-input" className="form-label">Preset Name</label>
               <input
                 id="preset-name-input"
                 className="form-input"
@@ -91,6 +105,30 @@ export default function PresetManager({ presets, watermark, onLoad, onSave, onDe
                 disabled={!saveName.trim()}
               >
                 Save Preset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {presetToDelete && (
+        <div className="modal-backdrop" onClick={() => setPresetToDelete(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">Delete Preset?</div>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+              Are you sure you want to delete the preset <strong>"{presetToDelete}"</strong>? This action cannot be undone.
+            </p>
+            <div className="modal-actions" style={{ marginTop: 24 }}>
+              <button className="btn btn-secondary" onClick={() => setPresetToDelete(null)}>Cancel</button>
+              <button
+                className="btn btn-danger"
+                onClick={() => {
+                  onDelete(presetToDelete)
+                  setPresetToDelete(null)
+                }}
+              >
+                Delete
               </button>
             </div>
           </div>

@@ -1,3 +1,10 @@
+// ── Easing Functions ──────────────────────────────────────────────────────────
+
+// Smooth sine easing (in-out)
+function easeInOutSine(x) {
+  return -(Math.cos(Math.PI * x) - 1) / 2
+}
+
 /**
  * Pure, stateless animation engine for watermarks.
  * By using timeSec (current playback time in seconds), we ensure perfect
@@ -13,22 +20,23 @@ export function applyAnimation(baseConfig, timeSec, bounds) {
   let newConfig = { ...baseConfig }
 
   if (anim === 'slide') {
-    // Horizontal ping-pong using a triangle wave
+    // Horizontal ping-pong using smooth sine wave
     const period = 5 / speed
     const ts = (timeSec % period) / period
     const tri = ts < 0.5 ? ts * 2 : 2 - ts * 2
-    newConfig.xPct = bounds.minX + tri * (bounds.maxX - bounds.minX)
+    const eased = easeInOutSine(tri)
+    newConfig.xPct = bounds.minX + eased * (bounds.maxX - bounds.minX)
   }
   else if (anim === 'bounce') {
-    // Diagonal ping-pong with offset frequencies for X and Y
+    // Diagonal ping-pong with offset frequencies for X and Y, with smooth easing
     const periodX = 10 / speed
     const periodY = 13.5 / speed
     const tx = (timeSec % periodX) / periodX
     const ty = (timeSec % periodY) / periodY
     const triX = tx < 0.5 ? tx * 2 : 2 - tx * 2
     const triY = ty < 0.5 ? ty * 2 : 2 - ty * 2
-    newConfig.xPct = bounds.minX + triX * (bounds.maxX - bounds.minX)
-    newConfig.yPct = bounds.minY + triY * (bounds.maxY - bounds.minY)
+    newConfig.xPct = bounds.minX + easeInOutSine(triX) * (bounds.maxX - bounds.minX)
+    newConfig.yPct = bounds.minY + easeInOutSine(triY) * (bounds.maxY - bounds.minY)
   }
   else if (anim === 'pulse') {
     // Scale ranges from 80% to 120% of base scale
@@ -40,6 +48,35 @@ export function applyAnimation(baseConfig, timeSec, bounds) {
     // Continuous rotation
     const spinSpeed = speed * 90 // degrees per second
     newConfig.rotation = (baseConfig.rotation ?? 0) + (timeSec * spinSpeed)
+  }
+  else if (anim === 'fade') {
+    // Opacity oscillates between 40% and 100%
+    const fadeSpeed = speed * Math.PI
+    const alphaMod = 0.7 + Math.sin(timeSec * fadeSpeed) * 0.3
+    newConfig.opacity = (baseConfig.opacity ?? 100) * alphaMod
+  }
+  else if (anim === 'float') {
+    // Gentle vertical bobbing (±5% of bounds)
+    const floatSpeed = speed * Math.PI
+    const offset = Math.sin(timeSec * floatSpeed) * 5
+    newConfig.yPct = Math.max(bounds.minY, Math.min(bounds.maxY, (baseConfig.yPct ?? 50) + offset))
+  }
+  else if (anim === 'shake') {
+    // Rapid small random-looking offsets (using high-freq sines)
+    const shakeSpeed = speed * 15
+    const offsetX = Math.sin(timeSec * shakeSpeed) * Math.cos(timeSec * shakeSpeed * 1.3) * 2
+    const offsetY = Math.cos(timeSec * shakeSpeed * 1.1) * Math.sin(timeSec * shakeSpeed * 0.8) * 2
+    newConfig.xPct = Math.max(bounds.minX, Math.min(bounds.maxX, (baseConfig.xPct ?? 50) + offsetX))
+    newConfig.yPct = Math.max(bounds.minY, Math.min(bounds.maxY, (baseConfig.yPct ?? 50) + offsetY))
+  }
+  else if (anim === 'zoom') {
+    // Slow dramatic scale from 50% to 150% and back
+    const period = 8 / speed
+    const ts = (timeSec % period) / period
+    const tri = ts < 0.5 ? ts * 2 : 2 - ts * 2
+    const eased = easeInOutSine(tri)
+    const scaleMod = 0.5 + (eased * 1.0) // 0.5 to 1.5
+    newConfig.scale = (baseConfig.scale ?? 100) * scaleMod
   }
 
   return newConfig

@@ -12,6 +12,8 @@ export function usePresets() {
   })
 
   const save = useCallback((name, config) => {
+    let success = true
+    let errorMsg = ''
     setPresets(prev => {
       const exists = prev.findIndex(p => p.name === name)
       let next
@@ -20,26 +22,31 @@ export function usePresets() {
       } else {
         next = [...prev, { name, config, createdAt: Date.now(), updatedAt: Date.now() }]
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      return next
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+        return next
+      } catch (err) {
+        success = false
+        errorMsg = err.name === 'QuotaExceededError' 
+          ? 'Storage full. Try deleting other presets, or use a smaller image watermark.'
+          : 'Failed to save preset.'
+        return prev // rollback
+      }
     })
+    if (!success) throw new Error(errorMsg)
   }, [])
 
   const remove = useCallback((name) => {
     setPresets(prev => {
       const next = prev.filter(p => p.name !== name)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      } catch (err) {
+        console.error('Failed to update storage after removing preset', err)
+      }
       return next
     })
   }, [])
 
-  const rename = useCallback((oldName, newName) => {
-    setPresets(prev => {
-      const next = prev.map(p => p.name === oldName ? { ...p, name: newName } : p)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      return next
-    })
-  }, [])
-
-  return { presets, save, remove, rename }
+  return { presets, save, remove }
 }

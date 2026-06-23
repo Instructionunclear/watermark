@@ -1,3 +1,24 @@
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Calculates text size and constructs the canvas font string.
+ */
+function getTextMetrics(canvas, wm) {
+  // fontSize is expressed as % of the shorter video dimension
+  // This ensures identical visual weight on portrait reels AND landscape videos
+  const shortSide = Math.min(canvas.width, canvas.height)
+  const baseSize = Math.max(6, Math.round(shortSide * ((wm.fontSize ?? 5) / 100)))
+  const scale = (wm.scale ?? 100) / 100
+  const size = Math.max(6, Math.round(baseSize * scale))
+
+  let fontStr = ''
+  if (wm.italic) fontStr += 'italic '
+  if (wm.bold)   fontStr += 'bold '
+  fontStr += `${size}px '${wm.fontFamily || 'Inter'}', sans-serif`
+
+  return { size, fontStr }
+}
+
 /**
  * Draws the watermark onto a 2D canvas context.
  */
@@ -10,7 +31,7 @@ export function drawWatermark(ctx, canvas, wm, wmImage) {
   const opacity = (wm.opacity ?? 100) / 100
   const rotation = ((wm.rotation ?? 0) * Math.PI) / 180
 
-  // ── Snap translation to whole pixels to avoid sub-pixel blur ──────────────
+  // Snap translation to whole pixels to avoid sub-pixel blur
   const tx = Math.round((xPct / 100) * canvas.width)
   const ty = Math.round((yPct / 100) * canvas.height)
 
@@ -20,23 +41,13 @@ export function drawWatermark(ctx, canvas, wm, wmImage) {
   ctx.rotate(rotation)
 
   if (wm.type === 'text') {
-    // fontSize is expressed as % of the shorter video dimension
-    // → identical visual weight on portrait reels AND landscape videos
-    const shortSide = Math.min(canvas.width, canvas.height)
-    const baseSize = Math.max(6, Math.round(shortSide * ((wm.fontSize ?? 5) / 100)))
-    const scale = (wm.scale ?? 100) / 100
-    const size = Math.max(6, Math.round(baseSize * scale))
-
-    let fontStr = ''
-    if (wm.italic) fontStr += 'italic '
-    if (wm.bold)   fontStr += 'bold '
-    fontStr += `${size}px '${wm.fontFamily || 'Inter'}', sans-serif`
+    const { size, fontStr } = getTextMetrics(canvas, wm)
 
     ctx.font         = fontStr
     ctx.textAlign    = 'center'
     ctx.textBaseline = 'middle'
 
-    // ── Crisp text: reset shadow defaults, only apply if size is big enough ──
+    // Crisp text: reset shadow defaults
     ctx.shadowColor   = 'transparent'
     ctx.shadowBlur    = 0
     ctx.shadowOffsetX = 0
@@ -52,10 +63,12 @@ export function drawWatermark(ctx, canvas, wm, wmImage) {
       ctx.strokeText(text, 0, 0)
     }
 
-    // Shadow — applied only to fill, and only when text is large enough to benefit
+    // Shadow — applied only to fill.
+    // We disable shadow for small text (<14px) because the blur radius
+    // makes it look muddy/illegible on standard displays.
     if (wm.shadow && size >= 14) {
       ctx.shadowColor   = 'rgba(0,0,0,0.75)'
-      ctx.shadowBlur    = Math.max(2, size * 0.15)   // tighter blur than before
+      ctx.shadowBlur    = Math.max(2, size * 0.15)
       ctx.shadowOffsetX = Math.round(size * 0.05)
       ctx.shadowOffsetY = Math.round(size * 0.05)
     }
@@ -63,9 +76,8 @@ export function drawWatermark(ctx, canvas, wm, wmImage) {
     ctx.fillStyle = wm.color || '#ffffff'
     ctx.fillText(text, 0, 0)
 
-    // ── Draw a thin crisp outline instead of shadow for small text ─────────
+    // Draw a thin crisp outline instead of shadow for small text (<14px)
     if (wm.shadow && size < 14) {
-      // Reset shadow, add a hairline outline for legibility
       ctx.shadowColor = 'transparent'
       ctx.shadowBlur  = 0
       ctx.strokeStyle = 'rgba(0,0,0,0.6)'
@@ -76,9 +88,11 @@ export function drawWatermark(ctx, canvas, wm, wmImage) {
 
   } else if (wm.type === 'image' && wmImage) {
     const scale = (wm.scale ?? 100) / 100
+    // Base image width is 30% of canvas width. This ensures a sane default size
+    // so massive logos don't cover the entire screen immediately.
     const maxW  = canvas.width * 0.3 * scale
     const ratio = wmImage.naturalHeight / wmImage.naturalWidth
-    // Snap image draw coords to whole pixels too
+    // Snap image draw coords to whole pixels
     const w = Math.round(maxW)
     const h = Math.round(maxW * ratio)
     ctx.drawImage(wmImage, -Math.round(w / 2), -Math.round(h / 2), w, h)
@@ -97,22 +111,17 @@ export function getWatermarkBounds(ctx, canvas, wm, wmImage) {
   let w = 0, h = 0
 
   if (wm.type === 'text') {
-    const shortSide = Math.min(canvas.width, canvas.height)
-    const baseSize = Math.max(6, Math.round(shortSide * ((wm.fontSize ?? 5) / 100)))
-    const scale = (wm.scale ?? 100) / 100
-    const size = Math.max(6, Math.round(baseSize * scale))
-
-    let fontStr = ''
-    if (wm.italic) fontStr += 'italic '
-    if (wm.bold)   fontStr += 'bold '
-    fontStr += `${size}px '${wm.fontFamily || 'Inter'}', sans-serif`
+    const { size, fontStr } = getTextMetrics(canvas, wm)
 
     ctx.save()
     ctx.font = fontStr
     const text = wm.text || 'Watermark'
     const metrics = ctx.measureText(text)
     w = metrics.width
-    h = size // Approx height
+    // Use actual bounding box ascender/descender sum instead of just 'size'
+    // This makes bounding box precise across all fonts.
+    h = (metrics.actualBoundingBoxAscent || size) + (metrics.actualBoundingBoxDescent || 0)
+    if (h === 0) h = size // fallback
     ctx.restore()
   } else if (wm.type === 'image' && wmImage) {
     const scale = (wm.scale ?? 100) / 100

@@ -1,8 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import VideoPreview from './components/VideoPreview'
 import WatermarkPanel from './components/WatermarkPanel'
 import PresetManager from './components/PresetManager'
 import VideoQueue from './components/VideoQueue'
+import ProcessingModal from './components/ProcessingModal'
+import JSZip from 'jszip'
 import { usePresets } from './hooks/usePresets'
 import { useFFmpeg } from './hooks/useFFmpeg'
 
@@ -97,6 +99,42 @@ export default function App() {
     })
   }, [])
 
+  const handleClearAll = useCallback(() => {
+    setVideos([])
+    setActiveIndex(null)
+    setProgress({})
+    setDownloadURLs({})
+    addToast('Queue cleared', 'info')
+  }, [addToast])
+
+  const handleClearDone = useCallback(() => {
+    let clearedCount = 0
+    setVideos(prev => {
+      const remaining = []
+      const newProgress = {}
+      const newURLs = {}
+      let newActiveIndex = null
+      
+      prev.forEach((v, i) => {
+        if (progress[i] !== 100) {
+          const newIdx = remaining.length
+          remaining.push(v)
+          if (progress[i]) newProgress[newIdx] = progress[i]
+          if (downloadURLs[i]) newURLs[newIdx] = downloadURLs[i]
+          if (activeIndex === i) newActiveIndex = newIdx
+        } else {
+          clearedCount++
+        }
+      })
+      
+      setProgress(newProgress)
+      setDownloadURLs(newURLs)
+      setActiveIndex(newActiveIndex !== null ? newActiveIndex : (remaining.length > 0 ? 0 : null))
+      return remaining
+    })
+    if (clearedCount > 0) addToast(`Cleared ${clearedCount} finished video${clearedCount > 1 ? 's' : ''}`, 'info')
+  }, [activeIndex, progress, downloadURLs, addToast])
+
   const handleWatermarkMove = useCallback((xPct, yPct) => setWatermark(w => ({ ...w, xPct, yPct })), [])
   const handleWmImageLoad   = useCallback((img) => setWmImage(img), [])
 
@@ -111,6 +149,15 @@ export default function App() {
     }
     addToast('Preset loaded!', 'success')
   }, [addToast])
+
+  const handleSavePreset = useCallback((name, config) => {
+    try {
+      savePreset(name, config)
+      addToast(`Preset "${name}" saved!`, 'success')
+    } catch (err) {
+      addToast(err.message, 'error')
+    }
+  }, [savePreset, addToast])
 
   const processOne = useCallback(async (idx) => {
     if (!ffmpegLoaded) { addToast('FFmpeg is still loading...', 'error'); return }
@@ -138,12 +185,12 @@ export default function App() {
       a.click()
     } catch (err) {
       console.error(err)
-      let msg = 'Unknown error'
+      let msg
       if (err instanceof Error) msg = err.message
       else if (err && err.name === 'ErrnoError') msg = `FS Error ${err.errno}`
       else if (typeof err === 'string') msg = err
       else if (err && err.message) msg = err.message
-      else msg = JSON.stringify(err) || String(err)
+      else msg = JSON.stringify(err) || String(err) || 'Unknown error'
       addToast(`Error: ${msg}`, 'error')
       setProgress(p => ({ ...p, [idx]: 0 }))
       setProcessingStage('')
@@ -160,6 +207,44 @@ export default function App() {
     setIsProcessingAll(false)
     addToast(`🎉 All ${videos.length} videos done!`, 'success')
   }, [ffmpegLoaded, videos, processOne, addToast])
+
+  const handleDownloadZIP = useCallback(async () => {
+    const zip = new JSZip()
+    const folder = zip.folder('Watermarked Videos')
+    
+    let added = 0
+    for (let i = 0; i < videos.length; i++) {
+      if (downloadURLs[i]) {
+        try {
+          const res = await fetch(downloadURLs[i])
+          const blob = await res.blob()
+          const name = `watermarked_${videos[i].name.replace(/\.[^.]+$/, '')}.mp4`
+          folder.file(name, blob)
+          added++
+        } catch (err) {
+          console.error('Failed to fetch blob for zip', err)
+        }
+      }
+    }
+    
+    if (added === 0) {
+      addToast('No exported videos to download!', 'error')
+      return
+    }
+    
+    addToast('Generating ZIP file...', 'info')
+    try {
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(zipBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'Watermarked_Videos.zip'
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch {
+      addToast('Failed to create ZIP', 'error')
+    }
+  }, [videos, downloadURLs, addToast])
 
   const doneCount = Object.values(progress).filter(v => v === 100).length
 
@@ -192,6 +277,15 @@ export default function App() {
           )}
           {videos.length > 0 && (
             <>
+              {doneCount > 0 && (
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleDownloadZIP}
+                  title="Download all finished videos as a ZIP file"
+                >
+                  📦 Download ZIP
+                </button>
+              )}
               <button
                 id="process-single-btn"
                 className="btn btn-secondary btn-sm"
@@ -199,10 +293,7 @@ export default function App() {
                 disabled={activeIndex === null || processingIndex !== null || !ffmpegLoaded}
                 title="Export the currently selected video"
               >
-                {processingIndex === activeIndex && processingIndex !== null
-                  ? <><span className="spinner" /> {processingStage || 'Rendering…'}</>
-                  : '⚡ Export Current'
-                }
+                ⚡ Export Current
               </button>
               <button
                 id="process-all-btn"
@@ -211,10 +302,7 @@ export default function App() {
                 disabled={isProcessingAll || !ffmpegLoaded}
                 title="Export all videos in the queue"
               >
-                {isProcessingAll
-                  ? <><span className="spinner" /> Rendering…</>
-                  : `🚀 Export All (${videos.length})`
-                }
+                🚀 Export All ({videos.length})
               </button>
             </>
           )}
@@ -239,7 +327,7 @@ export default function App() {
           presets={presets}
           watermark={watermark}
           onLoad={handleLoadPreset}
-          onSave={savePreset}
+          onSave={handleSavePreset}
           onDelete={removePreset}
           activePreset={activePreset}
           onSetActive={setActivePreset}
@@ -252,6 +340,8 @@ export default function App() {
         onSelect={setActiveIndex}
         onAdd={handleAddVideos}
         onRemove={handleRemoveVideo}
+        onClearAll={handleClearAll}
+        onClearDone={handleClearDone}
         progress={progress}
         processingIndex={processingIndex}
         downloadURLs={downloadURLs}
@@ -262,6 +352,13 @@ export default function App() {
           <div key={t.id} className={`toast ${t.type}`}>{t.msg}</div>
         ))}
       </div>
+
+      <ProcessingModal
+        isVisible={processingIndex !== null || isProcessingAll}
+        stage={processingStage}
+        progress={processingIndex !== null ? progress[processingIndex] : 0}
+        currentVideo={processingIndex !== null && videos[processingIndex] ? videos[processingIndex].name : null}
+      />
     </div>
   )
 }
