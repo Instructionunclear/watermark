@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-export default function ProcessingModal({ isVisible, stage, progress, currentVideo, onCancel }) {
+export default function ProcessingModal({ isVisible, stage, progress, currentVideo, batchCurrent, batchTotal, onCancel }) {
   const [dots, setDots] = useState('.')
 
   useEffect(() => {
@@ -24,7 +24,9 @@ export default function ProcessingModal({ isVisible, stage, progress, currentVid
         </div>
         
         <div className="modal-title" style={{ fontSize: 22, marginBottom: 8 }}>
-          {safeProgress === 100 ? 'Finishing up' : 'Processing Video'}{safeProgress < 100 ? dots : ''}
+          {safeProgress === 100 ? 'Finishing up' : 'Processing Video'}
+          {batchTotal > 1 && batchCurrent ? ` (${batchCurrent} of ${batchTotal})` : ''}
+          {safeProgress < 100 ? dots : ''}
         </div>
         
         {currentVideo && (

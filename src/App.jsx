@@ -420,6 +420,8 @@ export default function App() {
         stage={processingStage}
         progress={processingIndex !== null ? progress[processingIndex] : 0}
         currentVideo={processingIndex !== null && videos[processingIndex] ? videos[processingIndex].name : null}
+        batchCurrent={isProcessingAll && processingIndex !== null ? processingIndex + 1 : null}
+        batchTotal={isProcessingAll ? videos.length : null}
       />
     </div>
   )
