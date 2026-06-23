@@ -12,6 +12,7 @@ export default function VideoPreview({ videoFile, watermark, onWatermarkMove, wm
   const startTime  = useRef(0)
   const wmRef      = useRef(watermark)
   const videoReady = useRef(false)
+  const [nativeRatio, setNativeRatio] = useState('auto')
 
   // Always keep wmRef current without restarting the draw loop
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function VideoPreview({ videoFile, watermark, onWatermarkMove, wm
     if (r === '4:5') return '4 / 5'
     if (r === '16:9') return '16 / 9'
     if (r === '9:16') return '9 / 16'
-    return 'auto'
+    return nativeRatio
   })()
 
   // Resize canvas to match the wrapper element
@@ -181,6 +182,11 @@ export default function VideoPreview({ videoFile, watermark, onWatermarkMove, wm
           ref={videoRef}
           className="preview-video"
           controls loop playsInline
+          onLoadedMetadata={() => {
+            if (videoRef.current && videoRef.current.videoWidth) {
+              setNativeRatio(`${videoRef.current.videoWidth} / ${videoRef.current.videoHeight}`)
+            }
+          }}
           onLoadedData={() => {
             videoReady.current = true
             syncSize()
