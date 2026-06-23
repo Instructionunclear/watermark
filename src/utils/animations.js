@@ -28,21 +28,19 @@ export function applyAnimation(baseConfig, timeSec, bounds) {
     newConfig.xPct = bounds.minX + eased * (bounds.maxX - bounds.minX)
   }
   else if (anim === 'bounce') {
-    // True physics bounce (gravity on Y, linear reflection on X)
-    const periodX = 12 / speed // Horizontal traversal time
-    const periodY = 3.5 / speed  // Time for one full bounce (floor to peak to floor)
+    // Sharp linear bounce (DVD screensaver style - constant speed, sharp edge reflections)
+    const periodX = 10 / speed
+    const periodY = 13.5 / speed
     
-    // X Axis: Linear reflection (constant velocity, bounces off walls)
+    // X Axis: Linear reflection
     const tx = (timeSec % periodX) / periodX
-    const linearX = tx < 0.5 ? tx * 2 : 2 - tx * 2
-    newConfig.xPct = bounds.minX + linearX * (bounds.maxX - bounds.minX)
+    const triX = tx < 0.5 ? tx * 2 : 2 - tx * 2
+    newConfig.xPct = bounds.minX + triX * (bounds.maxX - bounds.minX)
     
-    // Y Axis: Parabolic gravity arcs
+    // Y Axis: Linear reflection
     const ty = (timeSec % periodY) / periodY
-    const arc = 1 - 4 * (ty - 0.5) ** 2 // 0 at floor, 1 at peak, 0 at floor
-    
-    // Canvas Y axis is inverted (larger is lower). maxY is floor, minY is ceiling.
-    newConfig.yPct = bounds.maxY - arc * (bounds.maxY - bounds.minY)
+    const triY = ty < 0.5 ? ty * 2 : 2 - ty * 2
+    newConfig.yPct = bounds.minY + triY * (bounds.maxY - bounds.minY)
   }
   else if (anim === 'pulse') {
     // Scale ranges from 80% to 120% of base scale
