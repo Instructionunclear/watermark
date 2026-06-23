@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import { drawWatermark, getWatermarkBounds } from '../utils/canvasRenderer'
 import { applyAnimation } from '../utils/animations'
 
