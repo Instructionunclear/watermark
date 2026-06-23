@@ -23,7 +23,9 @@ export function drawWatermark(ctx, canvas, wm, wmImage) {
     // fontSize is expressed as % of the shorter video dimension
     // → identical visual weight on portrait reels AND landscape videos
     const shortSide = Math.min(canvas.width, canvas.height)
-    const size = Math.max(6, Math.round(shortSide * ((wm.fontSize ?? 5) / 100)))
+    const baseSize = Math.max(6, Math.round(shortSide * ((wm.fontSize ?? 5) / 100)))
+    const scale = (wm.scale ?? 100) / 100
+    const size = Math.max(6, Math.round(baseSize * scale))
 
     let fontStr = ''
     if (wm.italic) fontStr += 'italic '
@@ -96,7 +98,9 @@ export function getWatermarkBounds(ctx, canvas, wm, wmImage) {
 
   if (wm.type === 'text') {
     const shortSide = Math.min(canvas.width, canvas.height)
-    const size = Math.max(6, Math.round(shortSide * ((wm.fontSize ?? 5) / 100)))
+    const baseSize = Math.max(6, Math.round(shortSide * ((wm.fontSize ?? 5) / 100)))
+    const scale = (wm.scale ?? 100) / 100
+    const size = Math.max(6, Math.round(baseSize * scale))
 
     let fontStr = ''
     if (wm.italic) fontStr += 'italic '
